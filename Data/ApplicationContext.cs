@@ -10,7 +10,8 @@ namespace coursework.Data
         public DbSet<Owner> Owners { get; set; }
         public ApplicationContext()
         {
-            //Database.EnsureDeleted();
+            
+            Database.EnsureDeleted();// Если не надо пересоздавать базу данных каждый раз, можно закомментировать эту строку
             Database.EnsureCreated();
         }
 

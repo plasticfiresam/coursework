@@ -5,11 +5,10 @@ using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using AngleSharp.Html.Dom;
-using System.Text.RegularExpressions;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace coursework.Parser
+namespace coursework
 {
     public class ProductParser
     {
@@ -39,37 +38,67 @@ namespace coursework.Parser
             foreach (var element in lessElements)
             {
                 var notebook = ParseNotebookData(element);
-                var sellerData = await ParseSellerData(notebook.Url);
-                notebook.Owner = sellerData;
+                var sellerData = await ParseDetailedData(notebook.Url);
+                notebook.Owner = sellerData.Owner;
+                notebook.DailyVisitorsDynamic = sellerData.AnnounceVisitorsData.DailyGrowth;
+                notebook.TotalVisitors = sellerData.AnnounceVisitorsData.Total;
+                notebook.Description = sellerData.Description;
                 notebooks.Add(notebook);
             }
 
-            return notebooks;
+                    return notebooks;
         }
         private Announcement ParseNotebookData(IElement element)
         {
             var name = element.QuerySelector(DataSelectors.NameSelector).TextContent;
             var link = element.QuerySelector<IHtmlAnchorElement>(DataSelectors.NameSelector).Href;
+            var linkParts = link.Split("_");
+            var announcementNumber = linkParts[linkParts.Length - 1];
             var price = element.QuerySelector(DataSelectors.PriceSelector).TextContent;
             return new Announcement() { 
                 Name = name,
                 Price = price,
                 Url = link,
+                AnnouncementNumber = announcementNumber,
             };
         }
-        private async Task<Owner> ParseSellerData(string url)
+        private async Task<DetailedAnnounceData> ParseDetailedData(string url)
         {
+            var announcementDetailedData = new DetailedAnnounceData();
             IDocument detailPage = await context.OpenAsync(url);
+            var description = detailPage.QuerySelector<IHtmlDivElement>(DataSelectors.DescriptionSelector);
+            announcementDetailedData.Description = description.TextContent.Trim();
+            var visitorsBloc = detailPage.QuerySelector<IHtmlDivElement>(DataSelectors.VisitorsSelector);
+            if (visitorsBloc != null)
+            {
+                var visitorsString = visitorsBloc.TextContent.Trim();
+                var totalVisitorsNumber = int.Parse(visitorsString.Split(" ")[0]);
+                var dynamicsValue = visitorsString.Split(" ")[1].Replace("(", "").Replace(")", "");
+                var isPositive = dynamicsValue.Contains("+");
+                var dynamicsNumber = int.Parse(dynamicsValue.Replace("+", "").Replace("-", ""));
+                announcementDetailedData.AnnounceVisitorsData = new AnnounceVisitorsData()
+                {
+                    Total = totalVisitorsNumber,
+                    DailyGrowth = dynamicsNumber,
+                    IsPositive = isPositive
+                };
+            }
+
             var sellerDiv = detailPage.QuerySelector<IHtmlDivElement>(DataSelectors.SellerSelector);
             if (sellerDiv != null && sellerDiv.Children.Length > 0)
             {
                 var sellerLink = (detailPage.QuerySelector<IHtmlDivElement>(DataSelectors.SellerSelector).Children[0] as IHtmlAnchorElement).Href;
                 var sellerName = detailPage.QuerySelector(DataSelectors.SellerSelector).TextContent;
-            return new Owner() { Name = sellerName.Trim(), Url = sellerLink, ProfileGuid = GenerateSellerGuid(sellerName).ToString() };
+                announcementDetailedData.Owner = new Owner() { 
+                    Name = sellerName.Trim(), 
+                    Url = sellerLink, 
+                    ProfileGuid = GenerateSellerGuid(sellerName).ToString() 
+                };
             } else
             {
                 return null;
             }
+            return announcementDetailedData;
         }
 
         private Guid GenerateSellerGuid(string sellerName)
