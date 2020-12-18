@@ -2,12 +2,28 @@
 
 namespace coursework.Entities
 {
+    /// <summary>
+    /// Сущность категории товаров
+    /// </summary>
     public class Category
     {
+        /// <summary>
+        /// Идентификатор категории товаров
+        /// </summary>
         public int Id { get; set; }
-        public string Code { get; set; }
+        /// <summary>
+        /// Название категории
+        /// </summary>
         public string Name { get; set; }
-        public List<Announcement> Announcements { get; set; } = new List<Announcement>();
+        /// <summary>
+        /// Краткое обозначение категории в адресной строке
+        /// </summary>
+        public string Slug { get; set; }
+        public bool CanBeDeleted { get; set; } = true;
+        /// <summary>
+        /// Связанные сущности объявлений
+        /// </summary>
+        public List<Announce> Announcements { get; set; } = new List<Announce>();
         public override string ToString()
         {
             return Name;

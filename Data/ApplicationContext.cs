@@ -1,16 +1,17 @@
 ﻿using coursework.Entities;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace coursework.Data
 {
-    class ApplicationContext : DbContext
+    public class ApplicationContext : DbContext
     {
         public DbSet<Category> Categories { get; set; }
-        public DbSet<Announcement> Announcements { get; set; }
+        public DbSet<Announce> Announces { get; set; }
         public DbSet<Owner> Owners { get; set; }
         public ApplicationContext()
         {
-            //Database.EnsureDeleted();
+            // Database.EnsureDeleted();
             Database.EnsureCreated();
         }
 
@@ -19,18 +20,28 @@ namespace coursework.Data
             optionsBuilder.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=helloappdb;Trusted_Connection=True;");
         }
 
+        internal object FirstOrDefault()
+        {
+            throw new NotImplementedException();
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Category>().HasData(
                 new Category[]
                 {
-                new Category{ Id=1, Name="Ноутбуки", Code = "notebooks"},
+                new Category { 
+                    Id = 1, 
+                    Name = "Ноутбуки",
+                    Slug = "noutbuki",
+                    CanBeDeleted = false,
+                },
                 });
 
-            modelBuilder.Entity<Announcement>().HasOne(a => a.Owner).WithMany(o => o.Announcements).OnDelete(DeleteBehavior.Cascade);
-            modelBuilder.Entity<Announcement>().HasOne(a => a.Category).WithMany(t => t.Announcements).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Announce>().HasOne(a => a.Owner).WithMany(o => o.Announces).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Announce>().HasOne(a => a.Category).WithMany(t => t.Announcements).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<Category>().HasMany(c => c.Announcements).WithOne(a => a.Category).OnDelete(DeleteBehavior.SetNull);
-            modelBuilder.Entity<Owner>().HasMany(o => o.Announcements).WithOne(a => a.Owner).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Owner>().HasMany(o => o.Announces).WithOne(a => a.Owner).OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

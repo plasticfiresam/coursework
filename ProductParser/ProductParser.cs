@@ -1,82 +1,89 @@
 ﻿using AngleSharp;
 using AngleSharp.Dom;
 using coursework.Entities;
-using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
-using AngleSharp.Html.Dom;
-using System.Text.RegularExpressions;
-using System.Security.Cryptography;
-using System.Text;
+using coursework.Models;
+using System.Threading;
 
 namespace coursework.Parser
 {
+    /// <summary>
+    /// Главный класс парсера объявлений
+    /// </summary>
     public class ProductParser
     {
         private static IConfiguration configuration = Configuration.Default.WithDefaultLoader();
         
         private static IBrowsingContext context = BrowsingContext.New(configuration);
-
-        public static string homePage = "https://www.avito.ru/tomsk/noutbuki";
-
-        public async Task<Collection<Announcement>> ParseProducts(string url)
+        /// <summary>
+        /// Парсинг объявлений по указанной в аргументах ссылке
+        /// </summary>
+        /// <param name="url">Ссылка на страницу, на которой будет производиться парсинг объявлений из списка</param>
+        /// <param name="limitDetailedParsing">Ограничение количества записей, о которых будет собрана детальная информация</param>
+        /// <param name="enableTimeout">Использовать ли тайм-аут при парсинге детальных страниц объявлений</param>
+        /// <param name="timeoutDuration">Продолжительность тайм-аута, в миллисекундах</param>
+        /// <returns>Список объявлений</returns>
+        public async Task<Collection<Announce>> ParseAnnouncesFromList(string url, int limitDetailedParsing = 5, bool enableTimeout = false, int timeoutDuration = 2000)
         {
-            IDocument document = await context.OpenAsync(url);
-            var elements = document.QuerySelectorAll(DataSelectors.ProductSelector).ToCollection<IElement>();
-            var lessElements = new Collection<IElement>() { 
-                elements[0], 
-                elements[1], 
-                elements[2],
-                elements[3],
-                elements[4],
-                elements[5],
-                elements[6]
-            };
-            
-            
-            Collection<Announcement> notebooks = new Collection<Announcement>();
-
-            foreach (var element in lessElements)
+            /// Загружаем страницу, на которой будет происходить парсинг
+            IDocument document = await ParsePage(url);
+            if (document != null)
             {
-                var notebook = ParseNotebookData(element);
-                var sellerData = await ParseSellerData(notebook.Url);
-                notebook.Owner = sellerData;
-                notebooks.Add(notebook);
-            }
+                /// Выбираем все элементы со страницы, которые подходят по селектору под элемент с данными об объявлении
+                var announceElements = document.QuerySelectorAll(DataSelectors.AnnounceSelector).ToCollection<IElement>();
+                /// Если не нашлось объявлений на странице - возвращается пустая коллекция
+                if (announceElements.Length == 0)
+                {
+                    return new Collection<Announce>();
+                }
+                /// Итоговый список объявлений для детального парсинга
+                var announcesToParseDetailed = new Collection<IElement>();
+                for (int i = 0; i < limitDetailedParsing; i++)
+                {
+                    announcesToParseDetailed.Add(announceElements[i]);
+                }
 
-            return notebooks;
-        }
-        private Announcement ParseNotebookData(IElement element)
-        {
-            var name = element.QuerySelector(DataSelectors.NameSelector).TextContent;
-            var link = element.QuerySelector<IHtmlAnchorElement>(DataSelectors.NameSelector).Href;
-            var price = element.QuerySelector(DataSelectors.PriceSelector).TextContent;
-            return new Announcement() { 
-                Name = name,
-                Price = price,
-                Url = link,
-            };
-        }
-        private async Task<Owner> ParseSellerData(string url)
-        {
-            IDocument detailPage = await context.OpenAsync(url);
-            var sellerDiv = detailPage.QuerySelector<IHtmlDivElement>(DataSelectors.SellerSelector);
-            if (sellerDiv != null && sellerDiv.Children.Length > 0)
-            {
-                var sellerLink = (detailPage.QuerySelector<IHtmlDivElement>(DataSelectors.SellerSelector).Children[0] as IHtmlAnchorElement).Href;
-                var sellerName = detailPage.QuerySelector(DataSelectors.SellerSelector).TextContent;
-            return new Owner() { Name = sellerName.Trim(), Url = sellerLink, ProfileGuid = GenerateSellerGuid(sellerName).ToString() };
+                Collection<Announce> parsedAnnounces = new Collection<Announce>();
+
+                foreach (var element in announcesToParseDetailed)
+                {
+                    var announceData = Announce.ParseAnnounceFromListElement(element);
+                    if (enableTimeout)
+                    {
+                        /// Для уменьшения шанса блокировки используется таймаут
+                        Thread.Sleep(timeoutDuration);
+                    }
+                    var detailedPage = await ParsePage(announceData.Url);
+                    var announceDetails = AnnounceDetailsInfo.ParseFromDetailedPage(detailedPage);
+                    announceData.Owner = announceDetails.OwnerData;
+                    parsedAnnounces.Add(announceData);
+                }
+
+                return parsedAnnounces;
             } else
+            {
+                /// Если страницу не удалось спарсить, также возвращается пустая коллекция товаров - не удалось спарсить объявления
+                return new Collection<Announce>();
+            }
+        }
+
+        /// <summary>
+        /// Парсинг отдельной страницы
+        /// </summary>
+        /// <param name="url">Ссылка на страницу для парсинга</param>
+        /// <returns>Объект документа страницы</returns>
+        private async Task<IDocument> ParsePage(string url)
+        {
+            try
+            {
+                var document = await context.OpenAsync(url);
+                
+                return document;
+            } catch
             {
                 return null;
             }
-        }
-
-        private Guid GenerateSellerGuid(string sellerName)
-        {
-            MD5 md5Hasher = MD5.Create();
-            byte[] data = md5Hasher.ComputeHash(Encoding.Default.GetBytes(sellerName));
-            return new Guid(data);
         }
     }
 
