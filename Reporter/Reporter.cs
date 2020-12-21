@@ -30,7 +30,7 @@ namespace coursework.Reporter
                         tempDoc.Save();
                         var readyTable = tempDoc.Tables[0];
                         readyTable.Design = TableDesign.TableGrid;
-                        readyTable.Rows[0].Cells[0].Paragraphs[0].Bold().FontSize(28);
+                        readyTable.Rows[0].Cells[0].Paragraphs[0].FontSize(28);
                         readyTable.Rows[1].Cells[0].Paragraphs[0].Bold().FontSize(11);
                         readyTable.Rows[2].Cells[0].Paragraphs[0].Bold().FontSize(11);
                         readyTable.Rows[3].Cells[0].Paragraphs[0].Bold().FontSize(11);
