@@ -45,6 +45,7 @@
             this.removeEntityButton = new System.Windows.Forms.Button();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
+            this.button1 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.announcesGridView)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.notebooksSource)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.categoriesSource)).BeginInit();
@@ -202,11 +203,22 @@
             this.toolStripMenuItem2.Tag = "wipe";
             this.toolStripMenuItem2.Text = "Очистить";
             // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(498, 451);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(138, 35);
+            this.button1.TabIndex = 6;
+            this.button1.Text = "Отчет";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.SaveReportButtonClickHandler);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(652, 498);
+            this.Controls.Add(this.button1);
             this.Controls.Add(this.removeEntityButton);
             this.Controls.Add(this.addEntityButton);
             this.Controls.Add(this.progressBar);
@@ -253,6 +265,7 @@
         private System.Windows.Forms.Button removeEntityButton;
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem2;
+        private System.Windows.Forms.Button button1;
     }
 }
 

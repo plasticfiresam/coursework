@@ -42,6 +42,10 @@ namespace coursework.Entities
         /// </summary>
         public Owner? Owner { get; set; }
 
+        public string Description { get; set; }
+
+        public int VisitorsTotal { get; set; }
+        public int VisitorsDaily { get; set; }
         /// <summary>
         /// Парсинг информации с карточки объявления на странице со списком объявлений
         /// </summary>
@@ -55,7 +59,7 @@ namespace coursework.Entities
             var announceUrl = announceElement.QuerySelector<IHtmlAnchorElement>(DataSelectors.NameSelector).Href;
             /// Выборка цены в строковом виде из карточки товара
             var announcePrice = announceElement.QuerySelector(DataSelectors.PriceSelector).TextContent.Replace(" ", "").Replace("₽", "");
-            
+
             return new Announce()
             {
                 Name = announceTitle,

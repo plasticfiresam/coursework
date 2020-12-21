@@ -1,6 +1,5 @@
 ﻿using coursework.Entities;
 using Microsoft.EntityFrameworkCore;
-using System;
 
 namespace coursework.Data
 {
@@ -11,7 +10,7 @@ namespace coursework.Data
         public DbSet<Owner> Owners { get; set; }
         public ApplicationContext()
         {
-            // Database.EnsureDeleted();
+            Database.EnsureDeleted();
             Database.EnsureCreated();
         }
 
@@ -19,12 +18,6 @@ namespace coursework.Data
         {
             optionsBuilder.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=helloappdb;Trusted_Connection=True;");
         }
-
-        internal object FirstOrDefault()
-        {
-            throw new NotImplementedException();
-        }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Category>().HasData(

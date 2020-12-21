@@ -3,10 +3,8 @@ using System;
 using System.Windows.Forms;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
-using System.Threading;
 using System.Collections.ObjectModel;
 using coursework.Entities;
-using System.Threading.Tasks;
 
 namespace coursework
 {
@@ -139,6 +137,9 @@ namespace coursework
             announcesGridView.Columns[0].Visible = false;
             announcesGridView.Columns[4].Visible = false;
             announcesGridView.Columns[6].Visible = false;
+            announcesGridView.Columns[8].Visible = false;
+            announcesGridView.Columns[9].Visible = false;
+            announcesGridView.Columns[10].Visible = false;
             announcesGridView.Columns[0].ReadOnly = true;
             announcesGridView.Columns[5].ReadOnly = true;
             announcesGridView.Columns[7].ReadOnly = true;
@@ -404,6 +405,15 @@ namespace coursework
                         }
                 }
             }
+        }
+
+        private void SaveReportButtonClickHandler(object sender, EventArgs e)
+        {
+            var announces = db.Announces.ToList();
+            var res = Reporter.Reporter.SaveReports(announces);
+            var i = 5;
+
+
         }
     }
 }
