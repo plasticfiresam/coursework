@@ -9,6 +9,35 @@ namespace coursework.Reporter
 {
     public class Reporter
     {
+
+        public static bool SaveCategoryStatisticsRepors(List<Category> categories, string outputFilePath = @"D:\report-categories-output.docx", string templateFilePath = @"D:\report-categories.doc") {
+            var categoriesCount = categories.Count;
+            var announcesCount = 0;
+
+            foreach (var category in categories) {
+                announcesCount += category.Announcements.Count;
+            }
+            
+            try {
+                if (File.Exists(templateFilePath)) {
+                    File.Delete(outputFilePath);
+
+                    DocX templateDoc = DocX.Load(templateFilePath);
+                    var bookmarks = templateDoc.Bookmarks;
+                    templateDoc.Bookmarks["AC"].SetText(announcesCount.ToString());
+                    templateDoc.Bookmarks["CC"].SetText(categoriesCount.ToString());
+                    foreach (var category in categories) {
+                        var categoryRow = templateDoc.Tables[0].InsertRow();
+                        categoryRow.Cells[0].InsertParagraph(category.Name);
+                        categoryRow.Cells[1].InsertParagraph(category.Announcements.Count.ToString());
+                    }
+                    templateDoc.SaveAs(outputFilePath);
+                }
+                return true;
+            } catch {
+                return false;
+            }
+        }
         public static bool SaveReports(List<Announce> announces, string outputFilePath = @"D:\report-output.docx", string templateFilePath = @"D:\report.doc")
         {
             try

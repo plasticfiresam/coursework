@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Collections.ObjectModel;
 using coursework.Entities;
+using System.Collections.Generic;
 
 namespace coursework
 {
@@ -22,71 +23,81 @@ namespace coursework
             startParsingButton.Enabled = false;
             Enabled = false;
             progressBar.Value = 10;
-            var announces = await new ProductParser().ParseAnnouncesFromList("https://www.avito.ru/tomsk/noutbuki");
-            progressBar.Value = 70;
-            var savingSucceeded = AddParsingResultsToDatabase(announces);
-            if (savingSucceeded)
+
+            var categories = db.Categories.ToList();
+            if (categories.Count == 0)
             {
-                MessageBox.Show("Данные успешно сохранены");
+                MessageBox.Show("Добавьте категории для парсинга");
+                Enabled = true;
+                progressBar.Value = 100;
+                startParsingButton.Enabled = true;
             }
             else
             {
-                MessageBox.Show("Возникла ошибка при сохранении данных");
+
+                var announces = await new ProductParser().ParseAnnouncesFromList(categories);
+                progressBar.Value = 70;
+                if (announces.Count > 0)
+                {
+                    var savingSucceeded = AddParsingResultsToDatabase(announces);
+                    if (savingSucceeded)
+                    {
+                        MessageBox.Show("Данные успешно сохранены");
+                    }
+                    else
+                    {
+                        MessageBox.Show("Возникла ошибка при сохранении данных");
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Не удалось считать данные");
+                }
+
+                Enabled = true;
+                progressBar.Value = 100;
+                startParsingButton.Enabled = true;
             }
-            Enabled = true;
-            progressBar.Value = 100;
-            startParsingButton.Enabled = true;
+
         }
 
         private bool AddParsingResultsToDatabase(Collection<Announce> announcesToAdd)
         {
             /// Берем для товаров заранее добавленную категорию - Ноутубки, из БД и отбираем её по слагу
-            var category = db.Categories.FirstOrDefault(c => c.Slug == "noutbuki");
-            if (category != null)
+            foreach (var announce in announcesToAdd)
             {
-                foreach (var announce in announcesToAdd)
+                if (announce.Owner != null)
                 {
-                    /// Проставляем объявлению имеющущюся категорию
-                    announce.Category = category;
-                    if (announce.Owner != null)
-                    {
-                        announce.OwnerGuid = announce.Owner.ProfileGuid;
+                    announce.OwnerGuid = announce.Owner.ProfileGuid;
 
-                        /// Проверяем на наличие владельца объявлений в БД, если есть - берем для связки запись оттуда
-                        var existingOwner = db.Owners.FirstOrDefault(o => o.ProfileGuid == announce.OwnerGuid);
-                        /// Если владельца нет ещё в базе
-                        if (existingOwner == null)
-                        {
-                            /// То сохраняем его в БД
-                            db.Owners.Add(announce.Owner);
-                            db.SaveChanges();
-                        }
-                        else
-                        {
-                            /// Если уже есть владелец, присваиваем его запись в БД навигационному свойству объявления
-                            announce.Owner = existingOwner;
-                        }
+                    /// Проверяем на наличие владельца объявлений в БД, если есть - берем для связки запись оттуда
+                    var existingOwner = db.Owners.FirstOrDefault(o => o.ProfileGuid == announce.OwnerGuid);
+                    /// Если владельца нет ещё в базе
+                    if (existingOwner == null)
+                    {
+                        /// То сохраняем его в БД
+                        db.Owners.Add(announce.Owner);
+                        db.SaveChanges();
+                    }
+                    else
+                    {
+                        /// Если уже есть владелец, присваиваем его запись в БД навигационному свойству объявления
+                        announce.Owner = existingOwner;
                     }
                 }
-                try
-                {
-                    /// После того как прошли по всем записям и разобрались со связанными сущностями - добавляем пачкой объявления в БД
-                    db.Announces.AddRange(announcesToAdd);
-                    /// Сохраняем данные в БД
-                    db.SaveChanges();
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
             }
-            else
+            try
             {
-                /// Отсутствие категории считаем ошибкой
+                /// После того как прошли по всем записям и разобрались со связанными сущностями - добавляем пачкой объявления в БД
+                db.Announces.AddRange(announcesToAdd);
+                /// Сохраняем данные в БД
+                db.SaveChanges();
+                return true;
+            }
+            catch
+            {
                 return false;
             }
-
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -97,7 +108,8 @@ namespace coursework
         /// <summary>
         /// Инициализация таблиц и привязка к ним данных из БД в отдельном методе
         /// </summary>
-        private void InitializeGridViews() {
+        private void InitializeGridViews()
+        {
             sellersSource.DataSource = db.Owners.Local.ToBindingList();
             db.Owners.Load();
             ownersGridView.DataSource = sellersSource;
@@ -125,7 +137,7 @@ namespace coursework
             db.Announces.Include(n => n.Owner).Include(n => n.Category).Load();
             announcesGridView.DataSource = notebooksSource;
 
-            
+
             announcesGridView.Columns[0].HeaderText = "Идентификатор";
             announcesGridView.Columns[1].HeaderText = "Название";
             announcesGridView.Columns[2].HeaderText = "Цена";
@@ -301,16 +313,18 @@ namespace coursework
                         break;
                     }
             }
-            
+
         }
         /// <summary>
         /// Удаление категории
         /// </summary>
-        private void DeleteCategory() {
+        private void DeleteCategory()
+        {
             var dialogResult = MessageBox.Show("Вы действительно хотите удалить запись?", "Удаление записи", MessageBoxButtons.YesNo);
             switch (dialogResult)
             {
-                case DialogResult.Yes: {
+                case DialogResult.Yes:
+                    {
                         Enabled = false;
                         var selectedCategoriesFromGridView = categoriesGridView.SelectedRows;
                         if (selectedCategoriesFromGridView.Count == 0)
@@ -342,7 +356,7 @@ namespace coursework
                         break;
                     }
             }
-            
+
         }
 
         private void DeleteAnnounce()
@@ -393,12 +407,12 @@ namespace coursework
                 switch (dialogResult)
                 {
                     case DialogResult.OK:
-                    {
+                        {
                             db.Owners.RemoveRange(db.Owners);
                             db.Announces.RemoveRange(db.Announces);
                             db.SaveChanges();
                             break;
-                    }
+                        }
                     default:
                         {
                             break;
@@ -409,11 +423,12 @@ namespace coursework
 
         private void SaveReportButtonClickHandler(object sender, EventArgs e)
         {
-            var announces = db.Announces.ToList();
-            var res = Reporter.Reporter.SaveReports(announces);
+            var categories = db.Categories.ToList();
+            var res = Reporter.Reporter.SaveCategoryStatisticsRepors(categories);
             var i = 5;
-
-
+            // var announces = db.Announces.ToList();
+            // var res = Reporter.Reporter.SaveReports(announces);
+            // var i = 5;
         }
     }
 }

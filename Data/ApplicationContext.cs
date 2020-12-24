@@ -10,7 +10,7 @@ namespace coursework.Data
         public DbSet<Owner> Owners { get; set; }
         public ApplicationContext()
         {
-            Database.EnsureDeleted();
+            // Database.EnsureDeleted();
             Database.EnsureCreated();
         }
 
