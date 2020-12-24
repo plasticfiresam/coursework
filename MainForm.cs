@@ -425,7 +425,6 @@ namespace coursework
         {
             var categories = db.Categories.ToList();
             var res = Reporter.Reporter.SaveCategoryStatisticsRepors(categories);
-            var i = 5;
             // var announces = db.Announces.ToList();
             // var res = Reporter.Reporter.SaveReports(announces);
             // var i = 5;

@@ -1,4 +1,7 @@
 ﻿using coursework.Entities;
+using OfficeOpenXml;
+using OfficeOpenXml.Drawing.Chart;
+using OfficeOpenXml.Table;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,31 +13,72 @@ namespace coursework.Reporter
     public class Reporter
     {
 
-        public static bool SaveCategoryStatisticsRepors(List<Category> categories, string outputFilePath = @"D:\report-categories-output.docx", string templateFilePath = @"D:\report-categories.doc") {
+        public static bool SaveCategoryStatisticsRepors(List<Category> categories, string outputFilePath = @"D:\report-categories-output.docx", string templateFilePath = @"D:\report-categories.doc")
+        {
             var categoriesCount = categories.Count;
             var announcesCount = 0;
 
-            foreach (var category in categories) {
+            foreach (var category in categories)
+            {
                 announcesCount += category.Announcements.Count;
             }
-            
-            try {
-                if (File.Exists(templateFilePath)) {
+
+            try
+            {
+                if (File.Exists(templateFilePath))
+                {
                     File.Delete(outputFilePath);
+                    File.Delete(@"D:\report-categories-output.xlsx");
 
                     DocX templateDoc = DocX.Load(templateFilePath);
                     var bookmarks = templateDoc.Bookmarks;
                     templateDoc.Bookmarks["AC"].SetText(announcesCount.ToString());
                     templateDoc.Bookmarks["CC"].SetText(categoriesCount.ToString());
-                    foreach (var category in categories) {
+                    foreach (var category in categories)
+                    {
                         var categoryRow = templateDoc.Tables[0].InsertRow();
                         categoryRow.Cells[0].InsertParagraph(category.Name);
                         categoryRow.Cells[1].InsertParagraph(category.Announcements.Count.ToString());
                     }
                     templateDoc.SaveAs(outputFilePath);
+
+                    string tableRange = $"A1:B{categoriesCount}";
+                    ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                    ExcelPackage package = new ExcelPackage();
+                    ExcelWorksheet sheet = package.Workbook.Worksheets.Add("Categories");
+                    ExcelTable table = sheet.Tables.Add(sheet.Cells[tableRange], "Categories");
+                    table.Columns[0].Name = "Категория";
+                    table.Columns[1].Name = "Количество объявлений";
+
+                    int firstDataRowIndex = 2;
+
+                    foreach (var category in categories)
+                    {
+                        sheet.Cells[$"A{firstDataRowIndex}"].Value = category.Name;
+                        sheet.Cells[$"B{firstDataRowIndex}"].Value = category.Announcements.Count;
+                        firstDataRowIndex++;
+                    }
+
+                    OfficeOpenXml.Drawing.Chart.ExcelChart chart = sheet.Drawings.AddChart("Категории и объявления", eChartType.ColumnClustered);
+                    chart.XAxis.Title.Text = "Категория";
+                    chart.XAxis.Title.Font.Size = 10;
+                    chart.YAxis.Title.Text = "Объявления";
+                    chart.YAxis.Title.Font.Size = 10;
+                    chart.SetSize(500, 300);
+                    chart.SetPosition(0, 0, 4, 0);
+
+                    string xValuesRange = $"A2:A{categoriesCount + 1}";
+                    chart.Series.Add($"A2:A{categoriesCount + 1}", xValuesRange);
+                    chart.Series.Add($"B2:B{categoriesCount + 1}", xValuesRange);
+                    chart.Legend.Position = eLegendPosition.Right;
+
+                    sheet.Cells[sheet.Dimension.Address].AutoFitColumns();
+                    package.SaveAs(new FileInfo(@"D:\report-categories-output.xlsx"));
                 }
                 return true;
-            } catch {
+            }
+            catch
+            {
                 return false;
             }
         }
@@ -47,7 +91,7 @@ namespace coursework.Reporter
                     File.Delete(outputFilePath);
 
                     DocX templateDoc = DocX.Load(templateFilePath);
-                    
+
                     DocX newDocument = DocX.Create(outputFilePath);
                     var templateTable = templateDoc.Tables[0];
                     templateTable.Design = TableDesign.TableGrid;
@@ -74,7 +118,8 @@ namespace coursework.Reporter
                 {
                     return false;
                 }
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 return false;
             }
@@ -92,6 +137,6 @@ namespace coursework.Reporter
             bookmarks["visitorsTotalText"].SetText(announce.VisitorsTotal.ToString());
             bookmarks["visitorsDynamics"].SetText(announce.VisitorsDaily.ToString());
         }
-        
+
     }
 }
